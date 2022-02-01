@@ -198,25 +198,9 @@ if (process.env.PUSH_PLUS_USER) {
 async function sendNotify(
   text,
   desp,
-  params = {'TG交流群':'https://t.me/jd_zero_205'},
-  author = '\n\n云函数老用户这个月开始实行新收费政策,请自行去自己私库页面或查看群内置顶.不需要请及时删除函数和github私库.',
+  params = {},
+  author = '\n\n本通知 By：https://github.com/whyour/qinglong',
 ) {
-  let no_notify = process.env.no_notify
-  if (no_notify) {
-    no_notify = process.env.no_notify.split('&')
-    if (module.parent.filename) {
-      const script_name = module.parent.filename.split('/').slice(-1)[0]
-      if (no_notify.some(key_word => {
-        const flag = script_name.includes(key_word)
-        if (flag) {
-          console.log(`${script_name}含有关键字${key_word},不推送`)
-        }
-        return flag
-      })) {
-        return
-      }
-    }
-  }
   //提供6种通知
   desp += author; //增加作者信息，防止被贩卖等
   await Promise.all([
@@ -440,36 +424,26 @@ function CoolPush(text, desp) {
 }
 
 function BarkNotify(text, desp, params = {}) {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     if (BARK_PUSH) {
-      const index = BARK_PUSH.lastIndexOf('/') + 1
-      const url = BARK_PUSH.substr(0,index)+"push"
-      const device_key = BARK_PUSH.substr(index)
-      params['Group'] = `${BARK_GROUP}`;
       const options = {
-        url,
-        json:{
-        device_key,
-        title: text,
-        body:desp,
-        sound:BARK_SOUND,
-        group:BARK_GROUP,
-        ext_params:params
+        url: `${BARK_PUSH}/${encodeURIComponent(text)}/${encodeURIComponent(
+          desp,
+        )}?sound=${BARK_SOUND}&group=${BARK_GROUP}&${querystring.stringify(params)}`,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
-         headers: {
-          'Content-Type': 'application/json; charset=utf-8'
-        },
-        timeout
-      }
-      $.post(options, (err, resp, data) => {
+        timeout,
+      };
+      $.get(options, (err, resp, data) => {
         try {
           if (err) {
-            console.log('Bark APP发送通知调用API失败！！\n')
+            console.log('Bark APP发送通知调用API失败！！\n');
             console.log(err);
           } else {
             data = JSON.parse(data);
             if (data.code === 200) {
-              console.log('Bark APP发送通知消息成功🎉\n')
+              console.log('Bark APP发送通知消息成功🎉\n');
             } else {
               console.log(`${data.message}\n`);
             }
@@ -479,12 +453,11 @@ function BarkNotify(text, desp, params = {}) {
         } finally {
           resolve();
         }
-      })
+      });
     } else {
-      console.log('您未提供Bark的APP推送BARK_PUSH，取消Bark推送消息通知🚫\n');
-      resolve()
+      resolve();
     }
-  })
+  });
 }
 
 function tgBotNotify(text, desp) {
